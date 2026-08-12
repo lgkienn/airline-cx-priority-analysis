@@ -6,7 +6,7 @@
 
 ---
 
-![Industry Command Center dashboard](https://claude.ai/chat/images/dashboard/01_industry_command_center.png)
+![Industry Command Center dashboard](images/dashboard/01_industry_command_center.png)
 
 ---
 
@@ -54,7 +54,7 @@ Four review tables cover airlines, airports, lounges and seats. They share no pa
 
 > **Missing values carry meaning here.** Passengers rate only the attributes they cared about, so a blank is not a zero. Wifi is blank in **73.3%** of reviews; value for money in **0.2%**. That difference is itself a finding — see Finding 1.
 
-Field definitions, known defects and derived measures: [`data/data_dictionary.md`](https://claude.ai/chat/data/data_dictionary.md)
+Field definitions, known defects and derived measures: [`data/data_dictionary.md`](data/data_dictionary.md)
 
 ---
 
@@ -259,7 +259,7 @@ This is a caveat on every other number in this report, including the ones above.
 
 ## Data Model
 
-![Power BI data model](https://claude.ai/chat/powerbi/data_model.png)
+![Power BI data model](powerbi/data_model.png)
 
 Star schema built on `airline_reviews_PBI_Master_Optimized_V4` as the fact table, with `Master_Calendar` supporting the year-over-year and seasonality measures. Sentiment label, sentiment score and the Covid-era flag were materialised in Python rather than computed in DAX, keeping the model light enough to stay responsive at 154k rows.
 
@@ -329,7 +329,7 @@ RETURN
 
 Eight text measures rewrite themselves as the user changes airline, so every comparison on the deep-dive page states its own direction rather than leaving the reader to work out the sign.
 
-Full documentation: [`powerbi/dax_measures.md`](https://claude.ai/chat/powerbi/dax_measures.md) — 91 measures in 8 groups.
+Full documentation: [`powerbi/dax_measures.md`](powerbi/dax_measures.md) — 91 measures in 8 groups.
 
 </details>
 
@@ -337,9 +337,9 @@ Full documentation: [`powerbi/dax_measures.md`](https://claude.ai/chat/powerbi/d
 
 ## Dashboard Walkthrough
 
-**Page 1 — Industry Command Center** · _Chief Insights Officer and market analysts_ ![Industry Command Center](https://claude.ai/chat/images/dashboard/01_industry_command_center.png) Establishes the benchmark any single airline is measured against. Leads with the verified-review share so the reliability caveat is visible before any ranking is read, and pairs the loyalty-driver model with the complaint themes so the mismatch between them is unavoidable.
+**Page 1 — Industry Command Center** · _Chief Insights Officer and market analysts_ ![Industry Command Center dashboard](images/dashboard/01_industry_command_center.png) Establishes the benchmark any single airline is measured against. Leads with the verified-review share so the reliability caveat is visible before any ranking is read, and pairs the loyalty-driver model with the complaint themes so the mismatch between them is unavoidable.
 
-**Page 2 — Airline Deep-Dive** · _VP Customer Experience at a client airline_ ![Airline Deep-Dive](https://claude.ai/chat/images/dashboard/02_airline_deep_dive.png) Every figure is expressed as a delta against the industry rather than as a raw score, because a CX lead cannot act on "2.98" but can act on "+0.72 against the market". The verified toggle and review threshold remain available so the client can stress-test their own numbers.
+**Page 2 — Airline Deep-Dive** · _VP Customer Experience at a client airline_ ![Airline Deep-Dive](images/dashboard/02_airline_deep_dive.png) Every figure is expressed as a delta against the industry rather than as a raw score, because a CX lead cannot act on "2.98" but can act on "+0.72 against the market". The verified toggle and review threshold remain available so the client can stress-test their own numbers.
 
 ---
 
