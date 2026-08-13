@@ -1,5 +1,5 @@
-# Airline CX — What Passengers Complain About vs What Actually Matters
-
+# # Airline Customer Experience (CX) Priority Analysis
+> What Passengers Complain About vs What Actually Matters
 > What airline passengers complain about and what actually decides whether they come back are two different lists.
 
 ![BigQuery](https://img.shields.io/badge/BigQuery-4285F4?style=for-the-badge&logo=googlebigquery&logoColor=white) ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white) ![Power BI](https://img.shields.io/badge/Power_BI-F2C811?style=for-the-badge&logo=powerbi&logoColor=black)
