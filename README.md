@@ -282,60 +282,6 @@ Star schema built on `airline_reviews_PBI_Master_Optimized_V4` as the fact table
 
 ---
 
-## Technical Highlights
-
-<details> <summary><b>The robustness check that made the headline defensible</b></summary>
-
-```python
-features = ['seat_comfort', 'cabin_staff_service', 'food_and_beverages',
-            'inflight_entertainment', 'ground_service', 'wifi_and_connectivity']
-# value_for_money deliberately excluded: it is a summary verdict, not a
-# service attribute, and sits close to the target variable
-
-df_ml = df[df.verify == 1][features + ['recommended']].dropna()
-model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
-model.fit(df_ml[features], df_ml['recommended'])
-```
-
-Running the model both ways and comparing rank order turns "the model says ground service matters" into "the model says ground service matters regardless of how I specify it."
-
-</details> <details> <summary><b>A statistical threshold enforced in two places</b></summary>
-
-```sql
--- SQL: no carrier enters a ranking on fewer than 350 reviews
-GROUP BY a.airline_name
-HAVING COUNT(*) >= 350
-```
-
-```dax
-Airlines Qualified Flag =
-IF( [Total Reviews] >= [Review Threshold Value], 1, 0 )
-
-% Recommended (Qualified Only) =
-IF( [Airlines Qualified Flag] = 1, [% Recommended], BLANK() )
-```
-
-At the dashboard's default threshold of 200 reviews, 72 of 493 carriers qualify — **14.6% of airlines covering 77.6% of reviews**. Exposing the threshold as a parameter lets the reader see how the ranking moves as the bar rises.
-
-</details> <details> <summary><b>Measures that rewrite their own labels</b></summary>
-
-```dax
-Delta % Cabin Staff Text =
-VAR d = [Avg Cabin Staff] - [Avg Cabin Staff (Industry)]
-RETURN
-    IF( d >= 0,
-        "▲ " & FORMAT( d, "0.00" ),
-        "▼ " & FORMAT( ABS(d), "0.00" ) )
-```
-
-Eight text measures rewrite themselves as the user changes airline, so every comparison on the deep-dive page states its own direction rather than leaving the reader to work out the sign.
-
-Full documentation: [`powerbi/dax_measures.md`](powerbi/dax_measures.md) — 91 measures in 8 groups.
-
-</details>
-
----
-
 ## Dashboard Walkthrough
 
 **Page 1 — Industry Command Center** · _Chief Insights Officer and market analysts_ ![Industry Command Center dashboard](images/dashboard/01_industry_command_center.png) Establishes the benchmark any single airline is measured against. Leads with the verified-review share so the reliability caveat is visible before any ranking is read, and pairs the loyalty-driver model with the complaint themes so the mismatch between them is unavoidable.
@@ -357,34 +303,6 @@ airline-cx-priority-analysis/
 ├── powerbi/                 # Data model, 91 DAX measures, PDF export
 └── images/                  # Dashboard screenshots
 ```
-
----
-
-## Challenges & Limitations
-
-**Challenges**
-
-- **Missing values that carry information.** Wifi is blank in 73.3% of reviews and value for money in 0.2%. Treating blanks as zeros would have made wifi the industry's catastrophe; treating the blank rate as a signal turned it into Finding 1. The distinction between "rated badly" and "not worth rating" is the whole of that finding.
-- **A benchmark that flatters everyone in it.** The 16.3-point verified gap meant that any comparison drawn from the full review pool was systematically wrong. Every statistical claim had to be rebuilt on the 40.2% carrying flight evidence.
-- **A ranking that rewarded obscurity.** Without a minimum-review rule, carriers with a handful of enthusiastic reviews outranked Singapore Airlines. Solved with a threshold enforced identically in SQL and DAX, and exposed as a user parameter rather than hard-coded.
-- **A link label masquerading as an airline.** `airline_id = 419` carries the name "Read more" and 6,700 reviews — 4.3% of the dataset, and the second-largest "carrier" among US reviewers. A scraping artefact that would have entered every ranking unnoticed.
-
-**Limitations**
-
-- **The model sees a third of the verified data.** Requiring complete ratings across all six attributes leaves 20,644 of 61,965 reviews. Passengers who rate everything may be systematically more thorough — or more extreme — than those who rate selectively.
-- **Feature importance is association, not causation.** The model identifies what separates recommenders from detractors, not what would happen if an airline improved a given attribute.
-- **The halo effect has three possible explanations.** Genuine mood contamination, correlated operational quality, and rating-behaviour bias all fit the observed 2.24-point swing. This data cannot separate them.
-- **National composition distorts every aggregate.** Finding 5 applies to Findings 1 through 4 as much as to the rankings.
-- **One table of four.** Airport, lounge and seat reviews were cleaned and profiled but not analysed.
-- **Ranking coverage is 14.6%.** At the default threshold, 72 of 493 carriers qualify — covering 77.6% of reviews, but leaving 421 carriers unranked.
-- **The business context is illustrative.** The data is real; Xóm Air is a scenario built to give the analysis a stakeholder.
-
-**Future Improvements**
-
-- Replace impurity-based importance with permutation importance, which handles correlated features more honestly.
-- Model missingness directly rather than dropping it — the decision to rate wifi may predict recommendation as strongly as the rating itself.
-- Extend the analysis to airport, lounge and seat reviews, where 58,000 rows remain untouched.
-- Build a nationality-adjusted industry benchmark so airlines can be compared on service rather than on reviewer mix.
 
 ---
 
