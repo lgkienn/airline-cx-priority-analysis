@@ -1,313 +1,233 @@
-# Airline Customer Experience (CX) Priority Analysis
-> What Passengers Complain About vs What Actually Matters?
+# Airline Customer Experience Intelligence | Power BI, Python, SQL
 
-> What airline passengers complain about and what actually decides whether they come back are two different lists.
+![Dashboard Overview](images/dashboard/01_industry_command_center.png)
 
-![BigQuery](https://img.shields.io/badge/BigQuery-4285F4?style=for-the-badge&logo=googlebigquery&logoColor=white) ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white) ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikitlearn&logoColor=white) ![Power BI](https://img.shields.io/badge/Power_BI-F2C811?style=for-the-badge&logo=powerbi&logoColor=black)
+**Author:** Lương Thế Kiện
+**Date:** August 2026
+**Tools Used:** Power BI · Python (scikit-learn, NLTK) · SQL (BigQuery)
 
----
+## 📑 Table of Contents
 
-![Industry Command Center dashboard](images/dashboard/01_industry_command_center.png)
-
----
-
-## Key Takeaways
-
-- **Wifi scores worst of every service attribute (1.96 / 5) and matters least — 0.52% of the model's explanation.** Ground service, scoring barely better at 2.27, is the leading service attribute at **23.08%**.
-- **A bad ground experience drags every later score down with it.** Passengers who rated ground service 4–5★ gave seat comfort **4.01**; those who rated it 1–2★ gave the identical seats **1.77**.
-- **The public ranking is inflated.** Unverified reviews recommend at 44.4% against 28.1% for verified ones — a **16.3-point** gap across 154,126 reviews.
+1. [📌 Background & Overview](#-background--overview)
+2. [📂 Dataset Description & Data Structure](#-dataset-description--data-structure)
+3. [🧠 Design Thinking Process](#-design-thinking-process)
+4. [📊 Key Insights & Visualizations](#-key-insights--visualizations)
+5. [🔎 Final Conclusion & Recommendations](#-final-conclusion--recommendations)
 
 ---
 
-## Business Context
+## 📌 Background & Overview
 
-Xóm Air is a customer-experience consultancy for the aviation industry. Its clients are airlines, airport groups and alliances who want to know what passengers actually think — not what satisfaction surveys tell them. To answer that, Xóm Air maintains a repository of **215,000 passenger-written reviews** scraped from independent review platforms, covering four parts of a journey: the flight, the airport, the lounge and the seat.
+### 📖 What is this project about?
+
+**Xóm Air** is a customer-experience consultancy for the aviation industry. Its clients are airlines, airport groups and alliances who want to know what passengers actually think — not what satisfaction surveys tell them. To answer that, Xóm Air maintains a repository of passenger-written reviews scraped from independent review platforms.
 
 The commercial problem is that everyone in the industry reacts to whatever passengers shout about loudest. Wifi complaints are visible, quotable and easy to put on a slide, so wifi gets budget. Nobody had tested whether the loudest complaint is the one that changes behaviour. Meanwhile, client airlines were benchmarking themselves against public review scores without knowing that roughly 60% of those scores come from reviews with no proof the flight ever happened.
 
 This analysis covers the flight leg — **154,126 airline reviews across 493 carriers, 2009 to 2026**.
 
+### 👤 Who is this project for?
+
+- **VP Customer Experience (client airline)** — to see which service attributes actually move loyalty, and where the gap between current performance and business impact is widest.
+- **Chief Insights Officer (Xóm Air)** — to establish a benchmark clients can trust, rather than one inflated by unverified reviews.
+- **Head of Product, Cabin** — to prioritise hardware and service investment against what passengers weigh most heavily.
+- **Marketing Director (client airline)** — to understand how business and leisure travellers differ, and which segment carries the remaining headroom.
+
+### ❓ Business Questions
+
+- Which service attributes are genuinely associated with a passenger's decision to recommend — and which only *appear* to matter?
+- What do passengers complain about most, and does that overlap with what drives loyalty?
+- Which airlines lead and which lag, on which specific criteria?
+- How far apart are verified and unverified reviews — and what does that say about the reliability of public rankings?
+- Do business and leisure travellers behave differently, and does that pattern hold for every carrier?
+
+### 🎯 Project Outcome
+
+- Identified **ground service** as the leading actionable driver of recommendation (23.08%), against **wifi** at 0.52% — despite wifi and entertainment dominating the complaint narrative.
+- Quantified a **16.3-point inflation** in the industry's most-cited public benchmark, and rebuilt every figure on verified reviews only.
+- Measured a **halo effect** in which ground service ratings shift how passengers score every other part of the journey by up to 2.2 points on a 5-point scale.
+- Delivered a two-page dashboard that lets any client airline benchmark itself against the market on every attribute, filtered by review verification status and minimum sample size.
+
 ---
 
-## Business Questions
+## 📂 Dataset Description & Data Structure
 
-1. Which service attributes are genuinely associated with a passenger's decision to recommend — and which only _appear_ to matter?
-2. What do passengers complain about most, and does that overlap with what drives loyalty?
-3. Which airlines lead and which lag, on which specific criteria?
-4. Has the industry recovered from Covid, and did passenger priorities shift?
-5. Do business and leisure travellers behave differently?
-6. How far apart are verified and unverified reviews — and what does that say about the reliability of public rankings?
+### 📌 Data Source
 
----
-
-## Dataset Overview
-
-|Attribute|Detail|
+| Attribute | Detail |
 |---|---|
-|**Source**|Public dataset — [Xóm Data / Skytrax](https://dataset.xomdata.com/datasets/schema/skytrax)|
-|**Period**|January 2009 – June 2026|
-|**Records**|154,126 airline reviews · 493 carriers|
-|**Verified**|61,965 (40.2%)|
-|**Tables**|6 total — 4 independent review tables plus 2 shared dimensions|
-|**Scale**|Every service attribute rated 1–5, higher is better|
+| **Source** | Public dataset — [Xóm Data / Skytrax](https://dataset.xomdata.com/datasets/schema/skytrax) |
+| **Period** | January 2009 – April 2026 |
+| **Size** | 154,126 airline reviews · 493 carriers · 577 with review data |
+| **Verified** | 61,965 (40.2%) |
+| **Format** | CSV, cleaned and enriched in Python |
 
-Four review tables cover airlines, airports, lounges and seats. They share no passenger key — the only join paths are `airline_id` and `airport_id`. **This analysis covers `airline_reviews` in depth**; the other three were cleaned and profiled but not analysed.
+Field definitions, processing decisions and known defects: [`data/data_dictionary.md`](data/data_dictionary.md)
 
-> **Missing values carry meaning here.** Passengers rate only the attributes they cared about, so a blank is not a zero. Wifi is blank in **73.3%** of reviews; value for money in **0.2%**. That difference is itself a finding — see Finding 1.
+### 📊 Tables Used
 
-Field definitions, known defects and derived measures: [`data/data_dictionary.md`](data/data_dictionary.md)
+**`airline_reviews`** — fact table, one row per flight review
 
----
-
-## Analysis Approach
-
-```
-Raw CSV (6 tables)
-   → Python cleaning + VADER sentiment + LDA topic modelling
-   → BigQuery exploration (23 queries, 4 themes)
-   → Random forest on verified reviews
-   → Power BI model (2 pages)
-```
-
-Three decisions shaped everything downstream:
-
-- **Verified reviews only, for every statistical claim.** Unverified reviews recommend 16.3 points higher (Finding 3). Mixing them would have inflated every number in this report.
-- **A minimum review threshold, enforced in both SQL and Power BI.** `HAVING COUNT(*) >= 350` in the queries, a user-adjustable parameter on the dashboard. Without it, a carrier with nine glowing reviews outranks Singapore Airlines.
-- **Cross-check every headline number.** Each figure below was recomputed independently from the source file; the dashboard and the recomputation agree to the decimal.
-
----
-
-## Key Findings
-
-### Finding 1 — The loudest complaint is the least important one
-
-|Attribute|Avg score (verified)|% who bothered to rate it|Model importance|
-|---|---|---|---|
-|**Wifi & connectivity**|**1.96** ← worst|**37.3%** ← lowest|**0.52%** ← last|
-|Value for money|2.25|100.0%|39.59%|
-|**Ground service**|**2.27**|95.9%|**23.08%** ← top service attribute|
-|Inflight entertainment|2.45|54.0%|2.47%|
-|Food & beverages|2.49|68.2%|7.99%|
-|Seat comfort|2.51|92.1%|14.12%|
-|Cabin staff service|2.76|91.5%|12.24%|
-
-Wifi is the worst-rated attribute in the industry. It is also the one passengers least often bother to rate, and the one a random forest finds almost useless for separating passengers who recommend from those who don't. Ground service scores barely better — 2.27 against 1.96 — yet accounts for **44 times more** of the model's explanation.
-
-Value for money tops the table, but it is not an actionable finding: it is a summary verdict passengers reach after weighing everything else, not a service an airline delivers. Excluding it and re-running the model is what the check below tests — and ground service leads the service attributes either way.
-
-The three columns together tell a coherent story. Passengers who don't care about wifi skip the question; those who do care rate it badly; and neither group lets it decide whether they fly the airline again. A complaint can be loud, frequent and genuine while still being commercially irrelevant.
-
-<details> <summary><b>Robustness check — does the ranking survive removing value for money?</b></summary>
-
-`value_for_money` is not a service attribute. It is a summary verdict a passenger reaches _after_ weighing everything, which puts it close to the target variable itself. Three tests confirm it:
-
-|Test|Result|
+| Column | Description |
 |---|---|
-|Correlation with `recommended`|**+0.842** — the highest of any attribute|
-|Predicting with that single feature alone|**94.7%** accuracy, against **94.9%** for all six service attributes combined|
-|Adding it to the six-feature model|Accuracy rises only **1.1 points** (94.9% → 96.0%) while it claims **39.59%** of the importance|
+| `review_id` · `airline_id` | Primary key and foreign key to the airline dimension |
+| `verify` | 1 if the review carries flight evidence |
+| `date_submitted` | Review date — the primary time axis |
+| `nationality` · `type_of_traveller` · `seat_type` · `aircraft` | Passenger and journey attributes |
+| `seat_comfort` · `cabin_staff_service` · `food_and_beverages` · `inflight_entertainment` · `ground_service` · `wifi_and_connectivity` · `value_for_money` | Service ratings, 1–5 scale. **A blank means "not rated", not zero** |
+| `recommended` | Target variable — would the passenger recommend this airline |
+| `sentiment_label` · `sentiment_score` | Derived in Python via VADER on the original review text |
+| `data_era` · `data_era_covid` | Derived period flags for trend analysis |
 
-One feature does the work of six, adds almost no information, and absorbs 40% of the attribution — the known behaviour of impurity-based importance when features are correlated.
+**`airlines`** — dimension, 595 carriers with `airline_id` and `airline_name`.
 
-Re-running the model without it tests whether the conclusion depends on that choice:
+Three further review tables (`airport_reviews`, `lounge_reviews`, `seat_reviews`) were cleaned and profiled but sit outside the scope of this analysis.
 
-|Attribute|With value for money|Without|
-|---|---|---|
-|Ground service|23.08% →|**36.63%**|
-|Seat comfort|14.12% →|24.81%|
-|Cabin staff service|12.24% →|18.42%|
-|Food & beverages|7.99% →|14.17%|
-|Inflight entertainment|2.47% →|4.88%|
-|Wifi & connectivity|0.52% →|1.07%|
+### 🔗 Data Relationships
 
-**No attribute changed rank**, and the 39.59% redistributed almost exactly in proportion — it was not standing in for any single attribute. The conclusion holds under both specifications.
+![Data Model](powerbi/data_model.png)
 
-</details>
-
----
-
-### Finding 2 — Ground service colours every score that follows it
-
-|Ground service rating|n|Seat comfort given|Inflight entertainment given|Recommend rate|
-|---|---|---|---|---|
-|4–5★|16,451|**4.01**|3.77|**85.3%**|
-|1–2★|37,568|**1.77**|1.73|**3.4%**|
-
-The seats are the same seats. The entertainment system is the same system. What changes is a passenger's mood by the time they reach them — a **2.24-point swing on a 5-point scale**, and a recommend rate of 85.3% against 3.4%.
-
-This reframes Finding 1. Ground service may top the importance ranking partly _because_ it contaminates every other rating, not purely on its own merits. That distinction matters for how the result should be read — but it strengthens the business case rather than weakening it. If the ground experience sets the frame for everything a passenger evaluates afterwards, investment there pays out across the whole journey rather than in one line item.
-
-Three explanations fit the data and this analysis cannot separate them: a genuine halo effect, correlated operational quality, or mood-driven rating behaviour. See [Limitations](https://claude.ai/chat/85293696-fc37-431e-b70c-6e53e4431b13#limitations).
-
----
-
-### Finding 3 — The public ranking is inflated by 16 points
-
-|Review type|Count|Share|Recommend rate|
+| From Table | To Table | Join Key | Relationship |
 |---|---|---|---|
-|Verified — flight evidence provided|61,965|40.2%|**28.1%**|
-|Unverified|92,161|59.8%|**44.4%**|
-|**Gap**|||**−16.3 pp**|
+| `airline_reviews` | `airlines` | `airline_id` | Many-to-One |
+| `airline_reviews` | `Master_Calendar` | `date_submitted` | Many-to-One |
 
-Six out of ten reviews in the industry's most-cited dataset carry no proof the flight took place, and those reviews are systematically more positive. Any ranking built on the full pool sits roughly sixteen points above what verified passengers actually report.
-
-The practical consequence is that airlines are benchmarking against an inflated baseline. An airline improving from 28% to 32% verified recommendation may still look like it is underperforming a "market average" that is itself an artefact of unverified enthusiasm.
-
-Every statistical claim in this report uses verified reviews only. The dashboard keeps the toggle so the difference stays visible rather than hidden behind a methodology note.
+A star schema with a single fact table. Sentiment scores and period flags were materialised in Python rather than computed in DAX, keeping the model responsive at 154k rows.
 
 ---
 
-### Finding 4 — Business travellers are harder to please, except where they aren't
+## 🧠 Design Thinking Process
 
-||Business|Leisure|Gap|
-|---|---|---|---|
-|**Industry**|26.86% _(n = 9,640)_|28.34% _(n = 52,322)_|**−1.48 pp**|
-|**Vietnam Airlines**|57.69%|50.24%|**+7.5 pp**|
+### 1️⃣ Empathize
 
-Industry-wide, business travellers recommend slightly _less_ than leisure travellers despite paying more and sitting further forward. The plain reading is that expectation rises with price: the same cabin scores lower when someone paid more to sit in it.
-
-Vietnam Airlines inverts this, and by a nine-point margin against the industry pattern. Its business cabin is not merely satisfying premium passengers, it is satisfying them _more_ than its leisure passengers — a profile shared by very few carriers in the dataset.
-
-Read alongside the airline's other figures — recommendation **51.7%** against an industry 28.1%, value for money **3.11** against 2.25, ground service **2.98** against 2.27 — the pattern is of a carrier whose service delivery outruns its scale. At the dashboard's 200-review threshold it ranks seventh in the industry, ahead of Thai Airways and Virgin Australia — a placing its review volume alone would not suggest.
-
----
-
-### Finding 5 — A third of the "industry average" is one nationality
-
-|Reviewer nationality|Verified reviews|Recommend rate|
+| Stakeholder | What they do today | Where it breaks down |
 |---|---|---|
-|**United States**|**22,367**|**15.28%**|
-|Canada|5,204|22.52%|
-|United Arab Emirates|827|28.17%|
-|India|2,038|30.37%|
-|Australia|4,530|35.50%|
-|United Kingdom|6,865|36.58%|
-|Germany|1,887|38.63%|
-|France|1,001|44.76%|
+| **VP Customer Experience** | Reads monthly review summaries and complaint themes | Knows what passengers complain about, not what changes their behaviour. Budget follows noise |
+| **Chief Insights Officer** | Benchmarks clients against public review averages | Has no way to tell whether that baseline is trustworthy |
+| **Head of Product, Cabin** | Prioritises hardware upgrades by internal roadmap | Cannot connect a seat or entertainment investment to a loyalty outcome |
+| **Marketing Director** | Segments campaigns by cabin class | Assumes premium passengers are the most satisfied, never tested |
 
-American reviewers write **36.2%** of all verified reviews and recommend at less than half the rate of everyone else — 15.28% against 35.36%, a raw gap of **20.1 points**.
+### 2️⃣ Define Point of View
 
-Raw gaps like this usually mean one of two things: American passengers fly worse airlines, or American passengers are harder to please. Comparing how the two groups rate _the same carrier_ separates them:
+> The CX team needs to know which service attributes drive a passenger's decision to recommend, so they can allocate a fixed improvement budget — **but complaint volume and actual impact have never been measured against each other**, and the benchmark they measure themselves against has never been validated.
 
-|Airline|US reviewers|Other reviewers|Gap|
-|---|---|---|---|
-|Norwegian|13.9%|42.5%|−28.6 pp|
-|Lufthansa|14.8%|33.6%|−18.9 pp|
-|British Airways|19.8%|36.7%|−16.9 pp|
-|United Airlines|13.4%|30.3%|−16.9 pp|
-|Delta Air Lines|21.0%|36.9%|−15.9 pp|
-|Air Canada|8.6%|21.7%|−13.1 pp|
-|American Airlines|9.3%|21.6%|−12.3 pp|
-|Turkish Airlines|15.4%|25.5%|−10.1 pp|
-|**Average across carriers**|||**−16.7 pp**|
+Two problems, not one. The first is a prioritisation problem. The second is a measurement problem — and solving the second is a precondition for trusting any answer to the first.
 
-Holding the airline constant, the gap narrows only from 20.1 to 16.7 points. **Roughly five-sixths of the difference is the reviewer, not the airline** — and it holds for European and Canadian carriers too, so it is not a case of Americans disliking American airlines.
+### 3️⃣ Ideate
 
-This is a caveat on every other number in this report, including the ones above. The industry recommendation rate of 28.1% is a weighted average in which one nationality holds a third of the weight and rates two standard deviations below the rest. Any airline whose passenger base skews American will appear to underperform for reasons that have nothing to do with its service.
-
----
-
-## Business Recommendations
-
-### 1. Move wifi spend to ground operations
-
-**Based on:** Findings 1 and 2 Wifi accounts for 1.07% of the recommendation decision; ground service accounts for 36.63% and additionally lifts how passengers score everything downstream. Wifi is worth fixing when it is broken, but it does not belong in a loyalty budget. 
-
-**Expected outcome:** ground service is the only attribute with both a low score (2.27) and top-ranked importance — the largest available gap between current state and impact. 
-
-**Owner:** VP Customer Experience, with Ground Operations
-
-### 2. Benchmark against verified reviews only, and republish the baseline
-
-**Based on:** Finding 3 Rebuild internal CX targets from the 40.2% of reviews carrying flight evidence. Publish the verified baseline alongside the public number so the sixteen-point difference is visible to everyone using it. 
-
-**Expected outcome:** removes a systematic 16.3-point distortion from every competitive comparison the CX team makes. 
-
-**Owner:** Chief Insights Officer
-
-### 3. Weight the industry benchmark by reviewer nationality
-
-**Based on:** Finding 5 The industry average is 36.2% American and Americans rate 16.7 points below everyone else on identical carriers. Any airline comparing itself to that average should compare against a nationality-adjusted figure, or against carriers with a similar passenger mix. 
-
-**Expected outcome:** stops carriers with US-heavy passenger bases from being penalised for their reviewer profile rather than their service. 
-
-**Owner:** Chief Insights Officer, with the analytics team
-
-### 4. For Vietnam Airlines: defend the premium cabin, close the leisure gap
-
-**Based on:** Finding 4 The airline's business-cabin advantage (+7.5 pp against an industry −1.48 pp) is unusual enough to be a competitive asset worth protecting. The leisure segment, at 50.24%, is where the remaining headroom sits — and it is the larger group. 
-
-**Expected outcome:** the airline already sits 23.6 points above the industry recommendation rate; the leisure gap is the one segment still tracking below its own average. 
-
-**Owner:** VP Customer Experience
-
----
-
-## Data Cleaning & Preparation
-
-|Issue|Treatment|Rationale|
+| Question to answer | Metric required | Where it lives |
 |---|---|---|
-|Free-text review bodies, no structured sentiment|VADER sentiment scoring, then LDA topic modelling to group recurring complaints into themes|Turns 154,126 unstructured comments into a rankable list of complaint themes without manual coding|
-|Reviews before 2009 too sparse to be meaningful|Dropped|A few dozen reviews per year cannot support a trend line, and their presence stretched every time axis pointlessly|
-|Verified and unverified reviews behave differently|Kept both, flagged explicitly, defaulted every analysis to verified|Deleting 59.8% of the data hides the problem; the gap is itself a finding|
-|Small carriers dominating rankings on a handful of reviews|Minimum-review threshold, adjustable by the user|A fixed cutoff embeds a judgement in the data; a parameter lets the reader test their own|
-|`airline_id = 419` labelled **"Read more"** — 6,700 reviews, 4.3%|Excluded from carrier-level analysis|A scraping artefact: link text captured as an airline name. It is the second-largest "carrier" in the dataset|
-|Blanks in service scores|Left as null, never imputed as zero|A blank means "did not rate", not "rated badly". Imputing zero would have made wifi look catastrophic instead of ignored|
+| What actually drives recommendation? | Feature importance from a classifier trained on service ratings | Page 1 |
+| Is that the same as what people complain about? | Complaint theme frequency from review text | Page 1 |
+| Does one attribute contaminate the others? | Cross-tabulated ratings by ground service band | Page 1 |
+| Can the public benchmark be trusted? | Verified vs unverified recommendation rate | Page 1 |
+| How does a single airline compare? | Delta against industry on every attribute | Page 2 |
+| Which segment holds the headroom? | Recommendation rate split by traveller type | Page 1 & 2 |
 
-**Result:** 154,126 rows, 26 columns, zero duplicates, all foreign keys resolving.
+### 4️⃣ Prototype & Review
 
----
-
-## Data Model
-
-![Power BI data model](powerbi/data_model.png)
-
-Star schema built on `airline_reviews_PBI_Master_Optimized_V4` as the fact table, with `Master_Calendar` supporting the year-over-year and seasonality measures. Sentiment label, sentiment score and the Covid-era flag were materialised in Python rather than computed in DAX, keeping the model light enough to stay responsive at 154k rows.
+- **Two pages, not one.** The industry benchmark and the single-airline view serve different people in different meetings. Merging them would force both audiences to filter past content they don't need.
+- **Page 2 shows deltas, not raw scores.** A CX lead cannot act on "2.98" but can act on "+0.72 against market". Every KPI on the deep-dive page is expressed relative to the industry.
+- **The verified-review toggle stays visible** rather than being buried in a methodology footnote, because the gap it exposes is itself one of the findings.
+- **A minimum-review threshold is a user parameter, not a hard-coded rule.** Without it a carrier with nine enthusiastic reviews outranks Singapore Airlines; fixing it at one value would embed a judgement the reader cannot test.
+- **Complaint themes and loyalty drivers sit side by side on Page 1**, because the mismatch between them is the point of the entire analysis.
 
 ---
 
-## Modeling Approach
+## 📊 Key Insights & Visualizations
 
-|Aspect|Detail|
-|---|---|
-|**Problem**|Binary classification — does this passenger recommend the airline?|
-|**Algorithm**|`RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)`|
-|**Features**|6 service attributes (7 in the first specification)|
-|**Population**|Verified reviews, 2009 onward, complete on all features|
-|**Sample**|20,644 rows — **33.3% of verified reviews**|
-|**Purpose**|Explanation, not prediction. No holdout split; no accuracy is claimed|
-|**Robustness**|Re-run without `value_for_money`; rank order unchanged (see Finding 1)|
+### 📋 I. Industry Command Center
 
-`max_depth=5` constrains each tree against overfitting; `random_state=42` makes the result reproducible. Importance is scikit-learn's default impurity-based measure — which distributes credit somewhat arbitrarily among correlated features, and measures association rather than causation. The language throughout this report reflects that.
+![Industry Command Center](images/dashboard/01_industry_command_center.png)
+
+#### 📌 Key Findings
+
+##### 1. What passengers complain about and what decides their loyalty are two different lists
+
+- The top complaint themes are **Delay & Mishandling (29.28%)**, **Refund & Support (21.03%)** and **In-flight Service Drop (18.83%)** — none of which is wifi or entertainment.
+- Yet the loyalty model ranks **wifi last at 0.52%** and **inflight entertainment second-last at 2.47%**.
+- Ground service, the attribute closest to the leading complaint themes, accounts for **23.08%** — forty-four times more than wifi.
+
+→ **Complaint volume and commercial impact are not the same signal. A complaint can be loud, frequent and genuine while still being irrelevant to whether a passenger comes back — and budget that follows complaint volume is being spent in the wrong place.**
+
+> The model runs on the 20,644 verified reviews that rate all seven attributes — 33.3% of the verified pool. Passengers who rate everything may be more thorough, or more extreme, than those who rate selectively.
+
+##### 2. The ranking holds regardless of how the model is specified
+
+- Value for money leads the importance ranking at **39.59%**, but it is a summary verdict passengers reach after weighing everything else — not a service an airline delivers.
+- Excluding it and re-running the model leaves the rank order of the six service attributes unchanged: ground service **36.63%**, seat comfort **24.81%**, cabin staff **18.42%**, food **14.17%**, entertainment **4.88%**, wifi **1.07%**.
+
+→ **Ground service is the top actionable driver under either specification. The conclusion does not depend on a modelling choice.**
+
+##### 3. Ground service colours every score that follows it
+
+- Passengers who rated ground service **4–5★** gave seat comfort **4.0** and inflight entertainment **3.77**.
+- Passengers who rated it **1–2★** gave the identical seats **1.8** and the identical entertainment system **1.73**.
+
+→ **A 2.2-point swing on a 5-point scale, on hardware that did not change. The ground experience sets the frame for everything a passenger evaluates afterwards, which means investment there pays out across the whole journey rather than in one line item.**
+
+##### 4. The public ranking is inflated by 16 points
+
+- Verified reviews — those carrying flight evidence — recommend at **28.1%**.
+- Unverified reviews recommend at **44.4%**.
+- Unverified reviews make up **59.8%** of the industry's most-cited dataset.
+
+→ **Any ranking built on the full review pool sits roughly sixteen points above what verified passengers actually report. Airlines are benchmarking against a baseline that is partly an artefact of unverified enthusiasm.**
+
+##### 5. Business travellers are harder to please than leisure travellers
+
+- Industry-wide, business travellers recommend at **26.86%** against **28.34%** for leisure — a gap of **−1.5 points**.
+- Business travellers make up only **15.56%** of reviews; solo leisure alone accounts for **38.37%**.
+
+→ **Expectation rises with price. The same cabin scores lower when someone paid more to sit in it — which makes any carrier that inverts this pattern worth examining closely.**
 
 ---
 
-## Dashboard Walkthrough
+### 📈 II. Airline Deep-Dive — Vietnam Airlines
 
-**Page 1 — Industry Command Center** · _Chief Insights Officer and market analysts_ ![Industry Command Center dashboard](images/dashboard/01_industry_command_center.png) Establishes the benchmark any single airline is measured against. Leads with the verified-review share so the reliability caveat is visible before any ranking is read, and pairs the loyalty-driver model with the complaint themes so the mismatch between them is unavoidable.
+![Airline Deep-Dive](images/dashboard/02_airline_deep_dive.png)
 
-**Page 2 — Airline Deep-Dive** · _VP Customer Experience at a client airline_ ![Airline Deep-Dive](images/dashboard/02_airline_deep_dive.png) Every figure is expressed as a delta against the industry rather than as a raw score, because a CX lead cannot act on "2.98" but can act on "+0.72 against the market". The verified toggle and review threshold remain available so the client can stress-test their own numbers.
+#### 📌 Key Findings
+
+##### 1. Vietnam Airlines outperforms the market on every service attribute
+
+- Recommendation rate **51.7%** against an industry **28.1%** — **+23.6 points**.
+- Value for money **3.11** (+0.85), ground service **2.98** (+0.72).
+- The service gap chart shows a positive delta on all seven attributes, with no exception.
+
+→ **This is not a carrier with isolated strengths. It clears the industry benchmark across the board, and at the dashboard's 200-review threshold it ranks seventh among all qualifying airlines.**
+
+##### 2. Its largest advantages sit where impact is highest
+
+- Widest gaps against benchmark: **value for money (+85.43%)**, **seat comfort (+74.86%)**, **cabin staff service (+74.66%)**, **ground service (+72.00%)**.
+- Narrowest gaps: **wifi (+14.68%)** and **inflight entertainment (+10.77%)**.
+
+→ **The airline is strongest precisely on the attributes the model identifies as decisive, and weakest on the two that barely register. If a competitor were designing a response, attacking on wifi would be the least effective move available.**
+
+##### 3. Business travellers invert the industry pattern here
+
+- Business travellers recommend at **57.69%**, leisure at **50.24%** — a gap of **+7.5 points**.
+- The industry gap runs the other way at **−1.5 points**, making this a **nine-point divergence** from the market pattern.
+
+→ **The premium cabin is not merely satisfying high-expectation passengers, it is satisfying them more than the leisure cabin does. That is a defensible competitive asset — and it locates the remaining headroom in the leisure segment, which is the larger group.**
+
+##### 4. The promoter–detractor split confirms the loyalty model independently
+
+- Ranking attributes by the gap between promoters and detractors: **ground service (2.4)** and **value for money (2.4)** lead; **wifi (1.5)** and **inflight entertainment (1.2)** trail.
+- This ordering was produced from raw score differences, with no model involved.
+
+→ **Two independent methods — a random forest on the full industry and a simple promoter–detractor comparison on a single carrier — return the same top two and the same bottom two. The prioritisation holds without relying on the model.**
+
+> Vietnam Airlines has **65.1% verified reviews** against an industry 40.2%, so its data is more reliable than the benchmark it is measured against. The true gap between this carrier and the market may be narrower than the headline figures suggest.
 
 ---
 
-## Repository Structure
+## 🔎 Final Conclusion & Recommendations
 
-```
-airline-cx-priority-analysis/
-├── data/
-│   ├── raw/                 # Six source tables as published
-│   ├── processed/           # Cleaned fact table used by Power BI
-│   └── data_dictionary.md   # Field definitions, defects, derived measures
-├── notebooks/               # Cleaning, sentiment, topic modelling, ML
-├── sql/                     # 23 BigQuery queries across 4 themes
-├── powerbi/                 # Data model, 91 DAX measures, PDF export
-└── images/                  # Dashboard screenshots
-```
-
----
-
-## Author
-
-**Lương Thế Kiện** Data Analyst — turning customer feedback into service investment decisions
-
-[LinkedIn](https://www.linkedin.com/in/ltkien1706/) · [luongkienss68@gmail.com](mailto:luongkienss68@gmail.com)
+| **Aspect** | **Insight** | **Recommendation** |
+|---|---|---|
+| **Investment prioritisation** | Wifi explains 0.52% of the recommendation decision against ground service at 23.08%, yet absorbs disproportionate attention in complaint reviews | Move wifi budget to ground operations. Wifi is worth fixing when broken, but does not belong in a loyalty budget. **Owner:** VP Customer Experience with Ground Operations |
+| **Compounding returns** | Ground service ratings shift how passengers score every other attribute by up to 2.2 points on a 5-point scale | Treat ground service as a multiplier rather than a line item — the same spend returns improvements across seat, food and entertainment scores. **Owner:** Head of Ground Operations |
+| **Benchmark reliability** | Unverified reviews recommend 16.3 points higher than verified ones and make up 59.8% of the public dataset | Rebuild internal CX targets on verified reviews only, and publish the verified baseline alongside the public number. **Owner:** Chief Insights Officer |
+| **Segment strategy** | Industry business travellers recommend 1.5 points below leisure; at Vietnam Airlines they recommend 7.5 points above | Protect the premium-cabin advantage as a differentiator, and direct improvement effort at the leisure segment where the headroom sits. **Owner:** VP Customer Experience with Marketing |
+| **Competitive positioning** | Vietnam Airlines' widest advantages fall on the highest-impact attributes; its narrowest fall on wifi and entertainment | Lead commercial messaging on value for money and service quality rather than cabin technology. **Owner:** Marketing Director |
